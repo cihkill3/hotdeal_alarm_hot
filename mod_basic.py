@@ -191,7 +191,7 @@ class ModuleBasic(PluginModuleBase):
             boards = ['ppomppu-hot', 'ppomppu4-hot', 'ppomppu8-hot', 'money-hot']
             regex = r'href=\"(?P<url>.+)\"\s+><font class=list_title>(?:<span class=\".+\">)?(?P<title>.+)<\/font>'
             for board in boards:
-                if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
+                if P.ModelSetting.get(f'use_board_ppomppu-hot_{board}') == 'True':
 
                     getdata = sess.get(
                         f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
