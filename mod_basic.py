@@ -13,7 +13,7 @@ import traceback
 
 site_map = {
     'ppomppu': '뽐뿌',
-    'ppomppu_hot': '뽐뿌_hot',
+    'ppomppu_hot': '뽐뿌-hot',
     'clien': '클리앙',
     'ruriweb': '루리웹',
     'coolenjoy' : '쿨엔조이',
@@ -24,10 +24,10 @@ board_map = {
     'ppomppu4': '해외뽐뿌',
     'ppomppu8': '알리뽐뿌',
     'money': '재태크포럼',
-    'ppomppu_hot': '뽐뿌게시판_hot',
-    'ppomppu4_hot': '해외뽐뿌_hot',
-    'ppomppu8_hot': '알리뽐뿌_hot',
-    'money_hot': '재태크포럼_hot',
+    'ppomppu_hot': '뽐뿌게시판-hot',
+    'ppomppu4_hot': '해외뽐뿌-hot',
+    'ppomppu8_hot': '알리뽐뿌-hot',
+    'money_hot': '재태크포럼-hot',
     'allsell': '사고팔고',
     'jirum': '알뜰구매',
     '1020': '핫딜/예판 유저',
@@ -36,7 +36,7 @@ board_map = {
 }
 site_board_map = {
     'ppomppu': ['ppomppu', 'ppomppu4', 'ppomppu8', 'money'],
-    'ppomppu_hot': ['ppomppu_hot', 'ppomppu4_hot', 'ppomppu8_hot', 'money_hot'],
+    'ppomppu-hot': ['ppomppu-hot', 'ppomppu4-hot', 'ppomppu8-hot', 'money-hot'],
     'clien': ['allsell', 'jirum'],
     'ruriweb': ['1020', '600004'],
     'coolenjoy' : ['jirum'],
@@ -48,7 +48,7 @@ def get_url_prefix(site_name):
     url_prefix = ''
     if site_name == 'ppomppu':
         url_prefix = 'https://www.ppomppu.co.kr/zboard/'
-    elif site_name == 'ppomppu_hot':
+    elif site_name == 'ppomppu-hot':
         url_prefix = 'https://www.ppomppu.co.kr/zboard/'
     elif site_name == 'clien':
         url_prefix = 'https://www.clien.net'
@@ -75,16 +75,16 @@ class ModuleBasic(PluginModuleBase):
             f'{P.package_name}_item_last_list_option': '',
             f'notify_mode': 'always',
             'use_site_ppomppu': 'False',
-            'use_site_ppomppu_hot': 'False',
+            'use_site_ppomppu-hot': 'False',
             'use_site_clien': 'False',
             'use_board_ppomppu_ppomppu': 'False',
             'use_board_ppomppu_ppomppu4': 'False',
             'use_board_ppomppu_ppomppu8': 'False',
             'use_board_ppomppu_money': 'False',
-            'use_board_ppomppu_ppomppu_hot': 'False',
-            'use_board_ppomppu_ppomppu4_hot': 'False',
-            'use_board_ppomppu_ppomppu8_hot': 'False',
-            'use_board_ppomppu_money_hot': 'False',
+            'use_board_ppomppu_ppomppu-hot': 'False',
+            'use_board_ppomppu_ppomppu4-hot': 'False',
+            'use_board_ppomppu_ppomppu8-hot': 'False',
+            'use_board_ppomppu_money-hot': 'False',
             'use_board_clien_allsell': 'False',
             'use_board_clien_jirum': 'False',
             'use_site_ruriweb': 'False',
@@ -139,7 +139,7 @@ class ModuleBasic(PluginModuleBase):
             mall_url = ''
             if item.site_name == 'ppomppu':
                 regex = r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>'
-            elif item.site_name == 'ppomppu_hot':
+            elif item.site_name == 'ppomppu-hot':
                 regex = r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>'
             elif item.site_name == 'clien':
                 regex = r'구매링크</span>.+>(?P<mall_url>.+)</a>'
@@ -187,8 +187,8 @@ class ModuleBasic(PluginModuleBase):
                         new_obj['board'] = board
                         ret['data'].append(new_obj)
 
-        if P.ModelSetting.get('use_site_ppomppu_hot') == 'True':
-            boards = ['ppomppu_hot', 'ppomppu4_hot', 'ppomppu8_hot', 'money_hot']
+        if P.ModelSetting.get('use_site_ppomppu-hot') == 'True':
+            boards = ['ppomppu-hot', 'ppomppu4-hot', 'ppomppu8-hot', 'money-hot']
             regex = r'href=\"(?P<url>.+)\"\s+><font class=list_title>(?:<span class=\".+\">)?(?P<title>.+)<\/font>'
             for board in boards:
                 if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
@@ -198,7 +198,7 @@ class ModuleBasic(PluginModuleBase):
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
-                        new_obj['site'] = 'ppomppu_hot'
+                        new_obj['site'] = 'ppomppu-hot'
                         new_obj['board'] = board
                         ret['data'].append(new_obj)
 

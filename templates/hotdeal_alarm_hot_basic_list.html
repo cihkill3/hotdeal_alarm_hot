@@ -13,7 +13,7 @@
           <select id="option1" name="option1" class="form-control form-control-sm">
             <option value="all">사이트 전체</option>
             <option value="ppomppu">뽐뿌</option>
-            <option value="ppomppu_hot">뽐뿌_hot</option>
+            <option value="ppomppu-hot">뽐뿌-hot</option>
             <option value="clien">클리앙</option>
             <option value="ruriweb">루리웹</option>
             <option value="coolenjoy">쿨엔조이</option>
@@ -26,10 +26,10 @@
             <option value="ppomppu4">해외뽐뿌</option>
             <option value="ppomppu8">알리뽐뿌</option>
             <option value="money">재테크포럼</option>
-            <option value="ppomppu_hot">뽐뿌게시판_hot</option>
-            <option value="ppomppu4_hot">해외뽐뿌_hot</option>
-            <option value="ppomppu8_hot">알리뽐뿌_hot</option>
-            <option value="money_hot">재테크포럼_hot</option>
+            <option value="ppomppu-hot">뽐뿌게시판-hot</option>
+            <option value="ppomppu4-hot">해외뽐뿌-hot</option>
+            <option value="ppomppu8-hot">알리뽐뿌-hot</option>
+            <option value="money-hot">재테크포럼-hot</option>
             <option value="allsell">사고팔고</option>
             <option value="jirum">알뜰구매</option>
             <option value="1020">핫딜/예판 유저</option>
@@ -86,6 +86,9 @@ function make_list(data) {
     let url_prefix = '';
     switch(data[i]['site_name']){
       case 'ppomppu':
+        url_prefix = 'https://www.ppomppu.co.kr/zboard/'
+      break;
+      case 'ppomppu-hot':
         url_prefix = 'https://www.ppomppu.co.kr/zboard/'
       break;
       case 'clien' : 
