@@ -194,7 +194,7 @@ class ModuleBasic(PluginModuleBase):
                 if P.ModelSetting.get(f'use_board_ppomppu-hot_{board}') == 'True':
 
                     getdata = sess.get(
-                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board.replace('-hot', '')}&hotlist_flag=999')
+                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board.replace("-hot", "")}&hotlist_flag=999')
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
