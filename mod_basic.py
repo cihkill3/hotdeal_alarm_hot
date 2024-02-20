@@ -13,10 +13,7 @@ import traceback
 
 site_map = {
     'ppomppu': '뽐뿌',
-    'ppomppu-hot': '뽐뿌-hot',
-    'clien': '클리앙',
     'ruriweb': '루리웹',
-    'coolenjoy' : '쿨엔조이',
     'quasarzone' : '퀘이사존'
 }
 board_map = {
@@ -24,22 +21,12 @@ board_map = {
     'ppomppu4': '해외뽐뿌',
     'ppomppu8': '알리뽐뿌',
     'money': '재태크포럼',
-    'ppomppu-hot': '뽐뿌게시판-hot',
-    'ppomppu4-hot': '해외뽐뿌-hot',
-    'ppomppu8-hot': '알리뽐뿌-hot',
-    'money-hot': '재태크포럼-hot',
-    'allsell': '사고팔고',
-    'jirum': '알뜰구매',
-    '1020': '핫딜/예판 유저',
-    '600004': '핫딜/예판 업체',
-    'qb_saleinfo': '지름/할인정보'
+    '1020': '루리웹핫딜',
+    'qb_saleinfo': '퀘존지름'
 }
 site_board_map = {
     'ppomppu': ['ppomppu', 'ppomppu4', 'ppomppu8', 'money'],
-    'ppomppu-hot': ['ppomppu-hot', 'ppomppu4-hot', 'ppomppu8-hot', 'money-hot'],
-    'clien': ['allsell', 'jirum'],
-    'ruriweb': ['1020', '600004'],
-    'coolenjoy' : ['jirum'],
+    'ruriweb': ['1020'],
     'quasarzone': ['qb_saleinfo']
 }
 
@@ -48,13 +35,7 @@ def get_url_prefix(site_name):
     url_prefix = ''
     if site_name == 'ppomppu':
         url_prefix = 'https://www.ppomppu.co.kr/zboard/'
-    elif site_name == 'ppomppu-hot':
-        url_prefix = 'https://www.ppomppu.co.kr/zboard/'
-    elif site_name == 'clien':
-        url_prefix = 'https://www.clien.net'
     elif site_name == 'ruriweb':
-        url_prefix = ''
-    elif site_name == 'coolenjoy':
         url_prefix = ''
     elif site_name == 'quasarzone':
         url_prefix = ''
@@ -75,23 +56,12 @@ class ModuleBasic(PluginModuleBase):
             f'{P.package_name}_item_last_list_option': '',
             f'notify_mode': 'always',
             'use_site_ppomppu': 'False',
-            'use_site_ppomppu-hot': 'False',
-            'use_site_clien': 'False',
             'use_board_ppomppu_ppomppu': 'False',
             'use_board_ppomppu_ppomppu4': 'False',
             'use_board_ppomppu_ppomppu8': 'False',
             'use_board_ppomppu_money': 'False',
-            'use_board_ppomppu-hot_ppomppu-hot': 'False',
-            'use_board_ppomppu-hot_ppomppu4-hot': 'False',
-            'use_board_ppomppu-hot_ppomppu8-hot': 'False',
-            'use_board_ppomppu-hot_money-hot': 'False',
-            'use_board_clien_allsell': 'False',
-            'use_board_clien_jirum': 'False',
             'use_site_ruriweb': 'False',
             'use_board_ruriweb_1020': 'False',
-            'use_board_ruriweb_600004': 'False',
-            'use_site_coolenjoy': 'False',
-            'use_board_coolenjoy_jirum': 'False',
             'use_site_quasarzone': 'False',
             'use_board_quasarzone_qb_saleinfo': 'False',
             'use_hotdeal_alarm': 'False',
@@ -139,23 +109,20 @@ class ModuleBasic(PluginModuleBase):
             mall_url = ''
             if item.site_name == 'ppomppu':
                 regex = r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>'
-            elif item.site_name == 'ppomppu-hot':
-                regex = r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>'
-            elif item.site_name == 'clien':
-                regex = r'구매링크</span>.+>(?P<mall_url>.+)</a>'
             elif item.site_name == 'ruriweb':
                 regex = r'<div class=\"source_url\">원본출처.+<a href=\".+\">(?P<mall_url>.+)</a>'
-            elif item.site_name == 'coolenjoy':
-                regex = r'alt=\"관련링크\">\s+<strong>(?P<mall_url>.+)</strong>'
             elif item.site_name == 'quasarzone':
                 regex = r'<th>링크</th>\s+<td><a href=\".+\"\s+>(?P<mall_url>.+)</a>'
             if regex:
                 if item.site_name == 'quasarzone':
                     scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'android', 'desktop': False})
-                    getdata = scraper.get(get_url_prefix(item.site_name) + item.url)
-                else:
+                    getdata = scraper.get(get_url_prefix(item.site_name) + item.url + '?popularity=Y')
+                elif item.site_name == 'ruriweb':
                     sess = requests.session()
-                    getdata = sess.get(get_url_prefix(item.site_name) + item.url)
+                    getdata = sess.get(get_url_prefix(item.site_name) + item.url + '?view_best=1')
+                elif item.site_name == 'ppomppu':
+                    sess = requests.session()
+                    getdata = sess.get(get_url_prefix(item.site_name) + item.url + '&hotlist_flag=999')
 
                 find_result = re.compile(regex).search(getdata.text)
                 if find_result:
@@ -179,7 +146,7 @@ class ModuleBasic(PluginModuleBase):
                 if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
 
                     getdata = sess.get(
-                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}')
+                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
@@ -187,46 +154,11 @@ class ModuleBasic(PluginModuleBase):
                         new_obj['board'] = board
                         ret['data'].append(new_obj)
 
-        if P.ModelSetting.get('use_site_ppomppu-hot') == 'True':
-            boards = ['ppomppu-hot', 'ppomppu4-hot', 'ppomppu8-hot', 'money-hot']
-            regex = r'href=\"(?P<url>.+)\"\s+><font class=list_title>(?:<span class=\".+\">)?(?P<title>.+)<\/font>'
-            for board in boards:
-                if P.ModelSetting.get(f'use_board_ppomppu-hot_{board}') == 'True':
-
-                    getdata = sess.get(
-                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board.replace("-hot", "")}&hotlist_flag=999')
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        new_obj['site'] = 'ppomppu-hot'
-                        new_obj['board'] = board.replace('-hot', '')
-                        ret['data'].append(new_obj)
-
-        if P.ModelSetting.get('use_site_clien') == 'True':
-            boards = ['allsell', 'jirum']
-
-            for board in boards:
-                if board == 'allsell':
-                    regex = r' class=\"list_subject\" href=\"(?P<url>.+?)\" .+\s+.+\s+.+?data-role=\"list-title-text\"\stitle=\"(?P<title>.+)\"\>'
-                    url = f'https://www.clien.net/service/group/{board}'
-                elif board == 'jirum':
-                    regex = r'<span class=\"list_subject\" data-role=\"cut-string\" title=\"(?P<title>.+)\">\s+<a href=\"(?P<url>.+?)\"\s'
-                    url = f'https://www.clien.net/service/board/{board}'
-
-                if P.ModelSetting.get(f'use_board_clien_{board}') == 'True':
-                    getdata = sess.get(url)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        new_obj['site'] = 'clien'
-                        new_obj['board'] = board
-                        ret['data'].append(new_obj)
-
         if P.ModelSetting.get('use_site_ruriweb') == 'True':
             boards = ['1020', '600004']
             for board in boards:
                 regex = r'<a class=\"deco\" href=\"(?P<url>.+)\"\>(?P<title>.+)</a>'
-                url = f'https://bbs.ruliweb.com/market/board/{board}'
+                url = f'https://bbs.ruliweb.com/market/board/{board}?view_best=1'
                 if P.ModelSetting.get(f'use_board_ruriweb_{board}') == 'True':
                     getdata = sess.get(url)
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
@@ -236,26 +168,12 @@ class ModuleBasic(PluginModuleBase):
                         new_obj['board'] = board
                         ret['data'].append(new_obj)
 
-        if P.ModelSetting.get('use_site_coolenjoy') == 'True':
-            boards = ['jirum']
-            for board in boards:
-                regex = r'<td class=\"td_subject\">\s+<a href=\"(?P<url>.+)\">\s+(?:<font color=.+?>)?(?P<title>.+?)(?:</font>)?\s+<span class=\"sound_only\"'
-                url = f'https://coolenjoy.net/bbs/{board}'
-                if P.ModelSetting.get(f'use_board_coolenjoy_{board}') == 'True':
-                    getdata = sess.get(url)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        new_obj['site'] = 'coolenjoy'
-                        new_obj['board'] = board
-                        ret['data'].append(new_obj)
-
         if P.ModelSetting.get('use_site_quasarzone') == 'True':
             boards = ['qb_saleinfo']
             scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'android', 'desktop': False})
             for board in boards:
                 regex = r'<p class=\"tit\">\s+<a href=\"(?P<url>.+)\"\s+class=.+>\s+.+\s+(?:<span class=\"ellipsis-with-reply-cnt\">)?(?P<title>.+?)(?:</span>)'
-                url = f'https://quasarzone.com/bbs/{board}'
+                url = f'https://quasarzone.com/bbs/{board}&popularity=Y'
                 if P.ModelSetting.get(f'use_board_quasarzone_{board}') == 'True':
                     getdata = scraper.get(url)
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
