@@ -78,15 +78,7 @@ function make_list(data) {
       case 'ppomppu':
         url_prefix = 'https://www.ppomppu.co.kr/zboard/'
       break;
-      case 'ppomppu-hot':
-        url_prefix = 'https://www.ppomppu.co.kr/zboard/'
-      break;
-      case 'clien' : 
-          url_prefix = 'https://www.clien.net';
-      break;
     }
-//    url_temp = data[i].url.replace('-hot', '')
-//    str += j_col(6, `<a href="${url_prefix}${url_temp}" target="_blank" rel="noopener noreferer">${data[i].title}</a>`);
 
     str += j_col(6, `<a href="${url_prefix}${data[i].url}" target="_blank" rel="noopener noreferer">${data[i].title}</a>`);
     // str += j_col(2, data[i].url);
