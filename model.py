@@ -4,7 +4,7 @@ from sqlalchemy import and_, desc, func, not_, or_
 
 class ModelItem(ModelBase):
     P = P
-    __tablename__ = 'hotdeal_alarm'
+    __tablename__ = 'hotdeal_alarm_hot'
     __table_args__ = {'mysql_collate': 'utf8_general_ci'}
     __bind_key__ = P.package_name
     id = db.Column(db.Integer, primary_key=True)

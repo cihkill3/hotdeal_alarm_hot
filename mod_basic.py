@@ -34,7 +34,7 @@ board_map = {
     '600004': '핫딜/예판 업체',
     'qb_saleinfo': '지름/할인정보'
 }
-site_board_map = {&hotlist_flag=999
+site_board_map = {
     'ppomppu': ['ppomppu', 'ppomppu4', 'ppomppu8', 'money'],
     'ppomppu_hot': ['ppomppu_hot', 'ppomppu4_hot', 'ppomppu8_hot', 'money_hot'],
     'clien': ['allsell', 'jirum'],

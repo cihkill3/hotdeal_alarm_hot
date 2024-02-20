@@ -1,4 +1,4 @@
-<link rel="manifest" href="{{url_for('hotdeal_alarm.static', filename='manifest.json')}}">
+<link rel="manifest" href="{{url_for('hotdeal_alarm_hot.static', filename='manifest.json')}}">
 <meta name="theme-color" content="#317EFB"/>
 {% extends "base.html" %}
 {% block content %}
@@ -69,7 +69,7 @@
     }
     async function registerServiceWorker() {
         return await navigator.serviceWorker
-            .register('{{ url_for("hotdeal_alarm.static", filename="service-worker.js") }}')
+            .register('{{ url_for("hotdeal_alarm_hot.static", filename="service-worker.js") }}')
             .then(function (registration) {
             console.log('Service worker successfully registered.');
             return registration;
@@ -167,18 +167,18 @@ $(document).ready(function(){
                 });
             }
             $.ajax({
-                url: '/hotdeal_alarm/api/web_push_subscribe', 
+                url: '/hotdeal_alarm_hot/api/web_push_subscribe', 
                 contentType : 'application/json',
                 method: 'POST',
                 data : JSON.stringify(subscription),
                 success:(resp)=>{
                     $.ajax({
-                        url : '/hotdeal_alarm/api/web_push',
+                        url : '/hotdeal_alarm_hot/api/web_push',
                         contentType : 'application/json',
                         method: 'POST',
                         data : JSON.stringify({
                             message : '[테스트 메시지] 새로운 웹 푸시가 등록 되었습니다.',
-                            url : '/hotdeal_alarm/basic/list'
+                            url : '/hotdeal_alarm_hot/basic/list'
                         }),
                         success:()=>{
                             alert("현재 기기로 웹 푸시가 등록 되었습니다.")
@@ -195,7 +195,7 @@ $(document).ready(function(){
     $('body').on('click', '#btnWebPushInit', (e) => {
         e.preventDefault();
         $.ajax({
-            url : '/hotdeal_alarm/api/web_push_init',
+            url : '/hotdeal_alarm_hot/api/web_push_init',
             method : 'POST',
             success : (resp)=>{
                 let data = JSON.parse(resp);
@@ -209,7 +209,7 @@ $(document).ready(function(){
     $('body').on('click', '#btnResetWebPush', async (e)=>{
         e.preventDefault();
         
-        let registration = await navigator.serviceWorker.getRegistration('{{ url_for("hotdeal_alarm.static", filename="service-worker.js") }}');
+        let registration = await navigator.serviceWorker.getRegistration('{{ url_for("hotdeal_alarm_hot.static", filename="service-worker.js") }}');
         if ( registration && 'pushManager' in registration){
             let subscription = await registration.pushManager.getSubscription();
             if (subscription) {
@@ -220,7 +220,7 @@ $(document).ready(function(){
             await registration.unregister();
         }
         $.ajax({
-                url: '/hotdeal_alarm/api/web_push_reset', 
+                url: '/hotdeal_alarm_hot/api/web_push_reset', 
                 contentType : 'application/json',
                 method: 'POST',
                 success : (resp) => {

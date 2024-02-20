@@ -1,8 +1,8 @@
 {   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
     "display": "fullscreen",
     "start_url": "",
-    "name": "Hotdeal Alarm_hot",
-    "short_name": "Hotdeal Alarm_hot",
+    "name": "hotdeal_alarm_hot",
+    "short_name": "hotdeal_alarm_hot",
     "theme_color" : "#3367D6",
     "background_color": "#3367D6",
     "icons": [ 
