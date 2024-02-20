@@ -194,12 +194,12 @@ class ModuleBasic(PluginModuleBase):
                 if P.ModelSetting.get(f'use_board_ppomppu-hot_{board}') == 'True':
 
                     getdata = sess.get(
-                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
+                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board.replace('-hot', '')}&hotlist_flag=999')
                     matches = re.finditer(regex, getdata.text, re.MULTILINE)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
                         new_obj['site'] = 'ppomppu-hot'
-                        new_obj['board'] = board
+                        new_obj['board'] = board.replace('-hot', '')
                         ret['data'].append(new_obj)
 
         if P.ModelSetting.get('use_site_clien') == 'True':

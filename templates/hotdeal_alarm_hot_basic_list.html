@@ -96,7 +96,7 @@ function make_list(data) {
       break;
     }
     
-    str += j_col(6, `<a href="${url_prefix}${data[i].url}" target="_blank" rel="noopener noreferer">${data[i].title}</a>`);
+    str += j_col(6, `<a href="${url_prefix}${data[i].url.replace('-hot', '')}" target="_blank" rel="noopener noreferer">${data[i].title}</a>`);
     // str += j_col(2, data[i].url);
     str += j_col(3, `[${site_map[data[i].site_name]}] ${board_map[data[i].board_name]}`);
 
