@@ -13,7 +13,7 @@ import traceback
 
 site_map = {
     'ppomppu': '뽐뿌',
-    'ppomppu_hot': '뽐뿌-hot',
+    'ppomppu-hot': '뽐뿌-hot',
     'clien': '클리앙',
     'ruriweb': '루리웹',
     'coolenjoy' : '쿨엔조이',
@@ -24,10 +24,10 @@ board_map = {
     'ppomppu4': '해외뽐뿌',
     'ppomppu8': '알리뽐뿌',
     'money': '재태크포럼',
-    'ppomppu_hot': '뽐뿌게시판-hot',
-    'ppomppu4_hot': '해외뽐뿌-hot',
-    'ppomppu8_hot': '알리뽐뿌-hot',
-    'money_hot': '재태크포럼-hot',
+    'ppomppu-hot': '뽐뿌게시판-hot',
+    'ppomppu4-hot': '해외뽐뿌-hot',
+    'ppomppu8-hot': '알리뽐뿌-hot',
+    'money-hot': '재태크포럼-hot',
     'allsell': '사고팔고',
     'jirum': '알뜰구매',
     '1020': '핫딜/예판 유저',
@@ -65,7 +65,7 @@ def get_url_prefix(site_name):
 class ModuleBasic(PluginModuleBase):
     def __init__(self, P):
         super(ModuleBasic, self).__init__(P, name='basic',
-                                          first_menu='setting', scheduler_desc="핫딜 알람")
+                                          first_menu='setting', scheduler_desc="핫딜 알람_hot")
         self.db_default = {
             f'db_version': '2.0',
             f'{self.name}_auto_start': 'False',
@@ -81,10 +81,10 @@ class ModuleBasic(PluginModuleBase):
             'use_board_ppomppu_ppomppu4': 'False',
             'use_board_ppomppu_ppomppu8': 'False',
             'use_board_ppomppu_money': 'False',
-            'use_board_ppomppu_ppomppu-hot': 'False',
-            'use_board_ppomppu_ppomppu4-hot': 'False',
-            'use_board_ppomppu_ppomppu8-hot': 'False',
-            'use_board_ppomppu_money-hot': 'False',
+            'use_board_ppomppu-hot_ppomppu-hot': 'False',
+            'use_board_ppomppu-hot_ppomppu4-hot': 'False',
+            'use_board_ppomppu-hot_ppomppu8-hot': 'False',
+            'use_board_ppomppu-hot_money-hot': 'False',
             'use_board_clien_allsell': 'False',
             'use_board_clien_jirum': 'False',
             'use_site_ruriweb': 'False',
