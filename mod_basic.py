@@ -142,8 +142,9 @@ class ModuleBasic(PluginModuleBase):
         if P.ModelSetting.get('use_site_ppomppu') == 'True':
             boards = ['ppomppu', 'ppomppu4', 'ppomppu8', 'money']
 #            regex = r'href=\"(?P<url>.+)\"\s+>.+/em>(?P<title>.+)</span></a>'
-            regex = r'href=\"(?P<url>.+)\"\s+>.+ace\">(?P<title>.+)</span></a>'
-#            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s?>.+>(?P<title>.+)</span></a>'
+##            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s?>.+>(?P<title>.+)</span></a>'
+###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
+            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+>.*?>(?P<title>.+)</span></a>'
             for board in boards:
                 if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
 
@@ -191,7 +192,8 @@ class ModuleBasic(PluginModuleBase):
                 'site_name': row['site'],
                 'board_name': row['board'],
 #                'title': row['title'].replace('</span>',''),
-                'title': row['title'].replace('</span>','').replace('</em>',''),
+##                'title': row['title'].replace('</span>','').replace('</em>',''),
+                'title': re.sub(r'<.*?>','',row['title']),
                 'url':  row['url']
             })
         self.process_discord_data()
