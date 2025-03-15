@@ -144,6 +144,7 @@ class ModuleBasic(PluginModuleBase):
 #            regex = r'href=\"(?P<url>.+)\"\s+>.+/em>(?P<title>.+)</span></a>'
 ##            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s?>.+>(?P<title>.+)</span></a>'
 ###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
+###            regex = r'title[\"\'] href=\"(?P<url>zboard\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
             regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+>.*?>(?P<title>.+)</span></a>'
             for board in boards:
                 if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
