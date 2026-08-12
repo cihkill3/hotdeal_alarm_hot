@@ -156,12 +156,15 @@ class ModuleBasic(PluginModuleBase):
                     getdata = sess.get(
                         f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
 #                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE | re.IGNORECASE)
+                    matches = re.finditer(regex, getdata.text, re.MULTILINE | re.IGNORECASE | re.DOTALL)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
                         
                         # title 내부에 포함된 불필요한 HTML 태그 제거 및 양옆 공백 제거
                         clean_title = re.sub(r'<[^>]+>', '', new_obj['title']).strip()
+                        # 2. HTML 엔티티(&amp; 등)를 실제 문자로 변환
+                        clean_title = html.unescape(clean_title)
+                        
                         new_obj['title'] = clean_title
                         
                         new_obj['site'] = 'ppomppu'
