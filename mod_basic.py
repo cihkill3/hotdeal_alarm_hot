@@ -145,15 +145,25 @@ class ModuleBasic(PluginModuleBase):
 ##            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s?>.+>(?P<title>.+)</span></a>'
 ###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
 ###            regex = r'title[\"\'] href=\"(?P<url>zboard\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
-            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+>.*?>(?P<title>.+)</span></a>'
+###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+>.*?>(?P<title>.+)</span></a>'
+            
+            # 띄어쓰기나 추가 클래스가 있어도 매칭되도록 정규식 수정
+            regex = r'class="baseList-title[^"]*"\s+href="(?P<url>view\.php[^"]+)"[^>]*>(?P<title>.*?)</a>'
+
             for board in boards:
                 if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
 
                     getdata = sess.get(
                         f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
+#                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
+                    matches = re.finditer(regex, getdata.text, re.MULTILINE | re.IGNORECASE)
                     for matchNum, match in enumerate(matches, start=1):
                         new_obj = match.groupdict()
+                        
+                        # title 내부에 포함된 불필요한 HTML 태그 제거 및 양옆 공백 제거
+                        clean_title = re.sub(r'<[^>]+>', '', new_obj['title']).strip()
+                        new_obj['title'] = clean_title
+                        
                         new_obj['site'] = 'ppomppu'
                         new_obj['board'] = board
                         ret['data'].append(new_obj)
