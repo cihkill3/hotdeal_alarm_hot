@@ -24,9 +24,9 @@ class ModelItem(ModelBase):
     @classmethod
     def update(cls, data):
         # Preserve the existing URL-based duplicate check and return contract.
-        cls.P.logger.info('[HOTDEAL][MODEL_CHECK] site=%s board=%s url=%s title=%r',
-                          data.get('site_name'), data.get('board_name'),
-                          data.get('url'), data.get('title'))
+        # cls.P.logger.info('[HOTDEAL][MODEL_CHECK] site=%s board=%s url=%s title=%r',
+                          # data.get('site_name'), data.get('board_name'),
+                          # data.get('url'), data.get('title'))
         try:
             if 'id' in data:
                 already_item = cls.get_by_id(data['id'])
@@ -36,8 +36,8 @@ class ModelItem(ModelBase):
                 cls.P.logger.error('[HOTDEAL][MODEL_QUERY_FAILED] url=%s', data.get('url'))
                 return {'ret': 'error', 'msg': 'DB 조회 실패', 'reason': 'query_failed'}
             if already_item:
-                cls.P.logger.info('[HOTDEAL][MODEL_DUPLICATE] url=%s existing=%s',
-                                  data['url'], len(already_item))
+                # cls.P.logger.info('[HOTDEAL][MODEL_DUPLICATE] url=%s existing=%s',
+                                  # data['url'], len(already_item))
                 return {'ret': 'error', 'msg': '이미 존재하는 URL', 'reason': 'duplicate'}
             db_item = ModelItem()
             db_item.board_name = data['board_name']
@@ -46,8 +46,8 @@ class ModelItem(ModelBase):
             db_item.url = data['url']
             db_item.alarm_status = data.get('alarm_status', False)
             db_item.save()
-            cls.P.logger.info('[HOTDEAL][MODEL_SAVED] id=%s site=%s board=%s url=%s',
-                              db_item.id, db_item.site_name, db_item.board_name, db_item.url)
+            # cls.P.logger.info('[HOTDEAL][MODEL_SAVED] id=%s site=%s board=%s url=%s',
+                              # db_item.id, db_item.site_name, db_item.board_name, db_item.url)
             return {'ret': 'success', 'msg': '업데이트 하였습니다.', 'reason': 'created'}
         except Exception:
             cls.P.logger.error('[HOTDEAL][MODEL_ERROR] url=%s\n%s',
