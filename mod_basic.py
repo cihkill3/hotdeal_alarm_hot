@@ -118,6 +118,16 @@ class ModuleBasic(PluginModuleBase):
             phase, site, board, response.status_code, len(response.content),
             response.encoding, time.monotonic() - started, urlparse(response.url).path,
         )
+        if response.status_code >= 400:
+            # Record only selected headers, never Cookie / Set-Cookie.
+            body = re.sub(r'\s+', ' ', response.text[:1000]).strip()[:500]
+            P.logger.warning(
+                '[HOTDEAL][HTTP_DENIED] site=%s board=%s status=%s server=%r '
+                'content_type=%r retry_after=%r body=%r',
+                site, board, response.status_code,
+                response.headers.get('Server'), response.headers.get('Content-Type'),
+                response.headers.get('Retry-After'), body,
+            )
         response.raise_for_status()
         return response
 
@@ -242,10 +252,17 @@ class ModuleBasic(PluginModuleBase):
                                              site, board,
                                              html.unescape(page_title.group(1)).strip()[:200] if page_title else '',
                                              'baseList-title' in response.text, 'view.php' in response.text)
-                    except Exception:
+                    except Exception as error:
                         ret['status'] = 'error'
                         P.logger.error('[HOTDEAL][BOARD_ERROR] site=%s board=%s\n%s',
                                        site, board, traceback.format_exc())
+                        # Do not immediately repeat a forbidden/rate-limited request
+                        # against other boards on the same site.
+                        denied_response = getattr(error, 'response', None)
+                        if denied_response is not None and denied_response.status_code in (403, 429):
+                            P.logger.warning('[HOTDEAL][SITE_STOP] site=%s status=%s; remaining boards skipped',
+                                             site, denied_response.status_code)
+                            break
             if scraper is not None:
                 scraper.close()
         saved = duplicates = failed = 0
