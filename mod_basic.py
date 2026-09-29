@@ -102,7 +102,7 @@ class ModuleBasic(PluginModuleBase):
     def _setting_enabled(self, key):
         raw = P.ModelSetting.get(key)
         enabled = str(raw).strip().lower() in ('true', '1', 'yes', 'on')
-        P.logger.info('[HOTDEAL][SETTING] key=%s raw=%r enabled=%s', key, raw, enabled)
+        # P.logger.info('[HOTDEAL][SETTING] key=%s raw=%r enabled=%s', key, raw, enabled)
         return enabled
 
     def _request_page(self, client, url, site, board, phase):
@@ -117,18 +117,18 @@ class ModuleBasic(PluginModuleBase):
                 'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.7',
                 'Referer': 'https://www.ppomppu.co.kr/',
             }
-            P.logger.info('[HOTDEAL][REQUEST_PROFILE] site=ppomppu profile=browser-headers-v3')
+            # P.logger.info('[HOTDEAL][REQUEST_PROFILE] site=ppomppu profile=browser-headers-v3')
         response = client.get(url, **request_options)
         # The supplied ppomppu page declares EUC-KR. Prefer a declared charset.
         charset = re.search(br'charset\s*=\s*["\x27]?([A-Za-z0-9_-]+)', response.content[:8192], re.I)
         if charset:
             response.encoding = charset.group(1).decode('ascii')
-        P.logger.info(
-            '[HOTDEAL][HTTP] phase=%s site=%s board=%s status=%s bytes=%s '
-            'encoding=%s seconds=%.2f path=%s',
-            phase, site, board, response.status_code, len(response.content),
-            response.encoding, time.monotonic() - started, urlparse(response.url).path,
-        )
+        # P.logger.info(
+            # '[HOTDEAL][HTTP] phase=%s site=%s board=%s status=%s bytes=%s '
+            # 'encoding=%s seconds=%.2f path=%s',
+            # phase, site, board, response.status_code, len(response.content),
+            # response.encoding, time.monotonic() - started, urlparse(response.url).path,
+        # )
         if response.status_code >= 400:
             # Record only selected headers, never Cookie / Set-Cookie.
             body = re.sub(r'\s+', ' ', response.text[:1000]).strip()[:500]
@@ -156,7 +156,7 @@ class ModuleBasic(PluginModuleBase):
             P.logger.error('[HOTDEAL][DETAIL] DB query failed; see MODEL log')
             ret['status'] = 'error'
             return ret
-        P.logger.info('[HOTDEAL][DETAIL] pending=%s', len(items))
+        # P.logger.info('[HOTDEAL][DETAIL] pending=%s', len(items))
         patterns = {
             'ppomppu': r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>',
             'ruriweb': r'<div class=\"source_url\">원본출처.+<a href=\".+\">(?P<mall_url>.+)</a>',
@@ -186,8 +186,8 @@ class ModuleBasic(PluginModuleBase):
                         match = re.search(regex, response.text)
                         if match:
                             mall_url = match.groupdict().get('mall_url', '')
-                        P.logger.info('[HOTDEAL][DETAIL] id=%s site=%s mall_link_found=%s',
-                                      item.id, item.site_name, bool(mall_url))
+                        # P.logger.info('[HOTDEAL][DETAIL] id=%s site=%s mall_link_found=%s',
+                                      # item.id, item.site_name, bool(mall_url))
                     item.mall_url = html.unescape(mall_url)
                     ModelItem.save(item)
                 except Exception:
@@ -201,7 +201,7 @@ class ModuleBasic(PluginModuleBase):
     def scrap_items(self):
         ret = {'status': 'success', 'data': []}
         started = time.monotonic()
-        P.logger.info('[HOTDEAL][START] module_file=%s', __file__)
+        # P.logger.info('[HOTDEAL][START] module_file=%s', __file__)
         specs = [
             ('ppomppu', ['ppomppu', 'ppomppu4', 'ppomppu8', 'money'],
              r'class="baseList-title[^"]*"\s+href="(?P<url>view\.php[^"]+)"[^>]*>(?P<title>.*?)</a>',
@@ -254,8 +254,8 @@ class ModuleBasic(PluginModuleBase):
                             obj['board'] = board
                             ret['data'].append(obj)
                             accepted += 1
-                        P.logger.info('[HOTDEAL][PARSE] site=%s board=%s matched=%s accepted=%s skipped=%s',
-                                      site, board, len(matches), accepted, skipped)
+                        # P.logger.info('[HOTDEAL][PARSE] site=%s board=%s matched=%s accepted=%s skipped=%s',
+                                      # site, board, len(matches), accepted, skipped)
                         if not accepted:
                             page_title = re.search(r'<title[^>]*>(.*?)</title>', response.text, re.I | re.S)
                             P.logger.warning('[HOTDEAL][EMPTY] site=%s board=%s page_title=%r '
@@ -298,30 +298,30 @@ class ModuleBasic(PluginModuleBase):
                 ret['status'] = 'error'
                 P.logger.error('[HOTDEAL][SAVE_ERROR] site=%s board=%s\n%s',
                                row['site'], row['board'], traceback.format_exc())
-        P.logger.info('[HOTDEAL][SAVE_SUMMARY] parsed=%s saved=%s duplicate=%s failed=%s',
-                      len(ret['data']), saved, duplicates, failed)
+        # P.logger.info('[HOTDEAL][SAVE_SUMMARY] parsed=%s saved=%s duplicate=%s failed=%s',
+                      # len(ret['data']), saved, duplicates, failed)
         try:
             self.process_discord_data()
         except Exception:
             ret['status'] = 'error'
             P.logger.error('[HOTDEAL][NOTIFY_ERROR]\n%s', traceback.format_exc())
-        P.logger.info('[HOTDEAL][END] status=%s seconds=%.2f', ret['status'], time.monotonic() - started)
+        # P.logger.info('[HOTDEAL][END] status=%s seconds=%.2f', ret['status'], time.monotonic() - started)
         return ret
 
     def process_discord_data(self):
         try:
             detail_result = self.scrap_detail()
-            P.logger.info('[HOTDEAL][DETAIL_SUMMARY] result=%r', detail_result)
+            # P.logger.info('[HOTDEAL][DETAIL_SUMMARY] result=%r', detail_result)
         except Exception as e:
             P.logger.error('Exception:%s', e)
             P.logger.error(traceback.format_exc())
         items = ModelItem.get_alarm_target_list()
-        P.logger.info('[HOTDEAL][NOTIFY] pending=%s', len(items) if items is not None else None)
-        P.logger.info('[HOTDEAL][NOTIFY_SETTINGS] always=%s keyword=%s distinct=%s web_push=%s',
-                      P.ModelSetting.get_bool('use_hotdeal_alarm'),
-                      P.ModelSetting.get_bool('use_hotdeal_keyword_alarm'),
-                      P.ModelSetting.get_bool('use_hotdeal_keyword_alarm_dist'),
-                      P.ModelSetting.get_bool('use_hotdeal_web_push'))
+        # P.logger.info('[HOTDEAL][NOTIFY] pending=%s', len(items) if items is not None else None)
+        # P.logger.info('[HOTDEAL][NOTIFY_SETTINGS] always=%s keyword=%s distinct=%s web_push=%s',
+                      # P.ModelSetting.get_bool('use_hotdeal_alarm'),
+                      # P.ModelSetting.get_bool('use_hotdeal_keyword_alarm'),
+                      # P.ModelSetting.get_bool('use_hotdeal_keyword_alarm_dist'),
+                      # P.ModelSetting.get_bool('use_hotdeal_web_push'))
         if items is None or len(items) == 0:
             return
         msg_template = P.ModelSetting.get('alarm_message_template')
@@ -355,8 +355,8 @@ class ModuleBasic(PluginModuleBase):
                             is_dist_send = True
                         
 
-                P.logger.info('[HOTDEAL][NOTIFY_DECISION] id=%s site=%s send=%s distinct=%s',
-                              item.id, item.site_name, is_send, is_dist_send)
+                # P.logger.info('[HOTDEAL][NOTIFY_DECISION] id=%s site=%s send=%s distinct=%s',
+                              # item.id, item.site_name, is_send, is_dist_send)
                 if is_send is True:
                     msg = msg_template
                     msg = msg.replace('{title}', title).replace('{site}', site).replace(
@@ -373,7 +373,7 @@ class ModuleBasic(PluginModuleBase):
                         msg, message_id=f"bot_{P.package_name}_keyword")
                     if is_web_push:
                         self.web_push({'message' : title, 'url':mall_url if len(mall_url) > 0 else url})
-            P.logger.info('[HOTDEAL][ALARM_MARK] id=%s alarm_status=True (existing behavior)', item.id)
+            # P.logger.info('[HOTDEAL][ALARM_MARK] id=%s alarm_status=True (existing behavior)', item.id)
             item.alarm_status = True
             ModelItem.save(item)
     def process_api(self, sub, req):
@@ -383,14 +383,14 @@ class ModuleBasic(PluginModuleBase):
                 os.mkdir('/data/web_push')
             gen_key_result = os.popen("cd /data/web_push ; /usr/local/bin/vapid --applicationServerKey --gen").read()
             key = gen_key_result.split(' = ')[1].strip()
-            P.logger.info(key)
+            # P.logger.info(key)
             with open('/data/web_push/key.txt','w') as file:
                 file.write(key)
             P.ModelSetting.set('web_push_public_key', key)
             result = json.dumps({'key' : key})
 
         elif sub =='web_push_subscribe':
-            P.logger.info(req.get_json())
+            # P.logger.info(req.get_json())
             subscription_info = req.get_json()
             web_push_subscription = json.loads(P.ModelSetting.get('web_push_subscription'))
             if type(web_push_subscription) != list:
@@ -407,7 +407,7 @@ class ModuleBasic(PluginModuleBase):
             P.ModelSetting.set('web_push_subscription', '[]')
         return result
     def web_push(self, data):
-        P.logger.info(data)
+        # P.logger.info(data)
         infos = json.loads(P.ModelSetting.get('web_push_subscription'))
         result = []
         for info in infos:
