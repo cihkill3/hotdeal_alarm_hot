@@ -10,6 +10,7 @@ import os
 import json
 from tool import ToolNotify
 import traceback
+from urllib.parse import urlparse, parse_qs, urljoin, urlencode, urlunparse
 
 site_map = {
     'ppomppu': '뽐뿌',
@@ -98,132 +99,206 @@ class ModuleBasic(PluginModuleBase):
     def scheduler_function(self):
         self.scrap_items()
 
-    def scrap_detail(self):
-        ret = {
-            'status': 'success'
-        }
-        P.logger.info("scrap_details")
-        regex = None
-        items = ModelItem.get_non_shopping_mall_lsit()
-        for item in items:
-            mall_url = ''
-            if item.site_name == 'ppomppu':
-                regex = r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>'
-            elif item.site_name == 'ruriweb':
-                regex = r'<div class=\"source_url\">원본출처.+<a href=\".+\">(?P<mall_url>.+)</a>'
-            elif item.site_name == 'quasarzone':
-                regex = r'<th>링크</th>\s+<td><a href=\".+\"\s+>(?P<mall_url>.+)</a>'
-            if regex:
-                if item.site_name == 'quasarzone':
-                    scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'android', 'desktop': False})
-                    getdata = scraper.get(get_url_prefix(item.site_name) + item.url + '?popularity=Y')
-                elif item.site_name == 'ruriweb':
-                    sess = requests.session()
-                    getdata = sess.get(get_url_prefix(item.site_name) + item.url + '?view_best=1')
-                elif item.site_name == 'ppomppu':
-                    sess = requests.session()
-                    getdata = sess.get(get_url_prefix(item.site_name) + item.url + '&hotlist_flag=999')
+    def _setting_enabled(self, key):
+        raw = P.ModelSetting.get(key)
+        enabled = str(raw).strip().lower() in ('true', '1', 'yes', 'on')
+        P.logger.info('[HOTDEAL][SETTING] key=%s raw=%r enabled=%s', key, raw, enabled)
+        return enabled
 
-                find_result = re.compile(regex).search(getdata.text)
-                if find_result:
-                    mall_url = find_result.groupdict().get('mall_url', '')
-            item.mall_url = html.unescape(mall_url)
-            ModelItem.save(item)
+    def _request_page(self, client, url, site, board, phase):
+        started = time.monotonic()
+        response = client.get(url, timeout=(10, 30))
+        # The supplied ppomppu page declares EUC-KR. Prefer a declared charset.
+        charset = re.search(br'charset\s*=\s*["\x27]?([A-Za-z0-9_-]+)', response.content[:8192], re.I)
+        if charset:
+            response.encoding = charset.group(1).decode('ascii')
+        P.logger.info(
+            '[HOTDEAL][HTTP] phase=%s site=%s board=%s status=%s bytes=%s '
+            'encoding=%s seconds=%.2f path=%s',
+            phase, site, board, response.status_code, len(response.content),
+            response.encoding, time.monotonic() - started, urlparse(response.url).path,
+        )
+        response.raise_for_status()
+        return response
+
+    @staticmethod
+    def _with_query(url, name, value):
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        query[name] = [value]
+        return urlunparse(parsed._replace(query=urlencode(query, doseq=True)))
+
+    def scrap_detail(self):
+        ret = {'status': 'success'}
+        items = ModelItem.get_non_shopping_mall_lsit()
+        if items is None:
+            P.logger.error('[HOTDEAL][DETAIL] DB query failed; see MODEL log')
+            ret['status'] = 'error'
+            return ret
+        P.logger.info('[HOTDEAL][DETAIL] pending=%s', len(items))
+        patterns = {
+            'ppomppu': r'div class=wordfix>링크: \<a .+\>(?P<mall_url>.+)\</a\>',
+            'ruriweb': r'<div class=\"source_url\">원본출처.+<a href=\".+\">(?P<mall_url>.+)</a>',
+            'quasarzone': r'<th>링크</th>\s+<td><a href=\".+\"\s+>(?P<mall_url>.+)</a>',
+        }
+        with requests.Session() as session:
+            scraper = None
+            for item in items:
+                try:
+                    regex = patterns.get(item.site_name)
+                    mall_url = ''
+                    if regex:
+                        url = urljoin(get_url_prefix(item.site_name), item.url)
+                        client = session
+                        if item.site_name == 'quasarzone':
+                            if scraper is None:
+                                scraper = cloudscraper.create_scraper(browser={
+                                    'browser': 'chrome', 'platform': 'android', 'desktop': False,
+                                })
+                            client = scraper
+                            url = self._with_query(url, 'popularity', 'Y')
+                        elif item.site_name == 'ruriweb':
+                            url = self._with_query(url, 'view_best', '1')
+                        else:
+                            url = self._with_query(url, 'hotlist_flag', '999')
+                        response = self._request_page(client, url, item.site_name, item.board_name, 'detail')
+                        match = re.search(regex, response.text)
+                        if match:
+                            mall_url = match.groupdict().get('mall_url', '')
+                        P.logger.info('[HOTDEAL][DETAIL] id=%s site=%s mall_link_found=%s',
+                                      item.id, item.site_name, bool(mall_url))
+                    item.mall_url = html.unescape(mall_url)
+                    ModelItem.save(item)
+                except Exception:
+                    ret['status'] = 'error'
+                    P.logger.error('[HOTDEAL][DETAIL_ERROR] id=%s site=%s\n%s',
+                                   item.id, item.site_name, traceback.format_exc())
+            if scraper is not None:
+                scraper.close()
         return ret
 
     def scrap_items(self):
-        ret = {
-            'status': 'success',
-            'data': []
-        }
-        P.logger.info("scrap_items")
-        sess = requests.session()
-        # get model settings.
-        if P.ModelSetting.get('use_site_ppomppu') == 'True':
-            boards = ['ppomppu', 'ppomppu4', 'ppomppu8', 'money']
-#            regex = r'href=\"(?P<url>.+)\"\s+>.+/em>(?P<title>.+)</span></a>'
-##            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s?>.+>(?P<title>.+)</span></a>'
-###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
-###            regex = r'title[\"\'] href=\"(?P<url>zboard\.php.+?)\"\s+><span>(?P<title>.+)</span></a>'
-###            regex = r'title[\"\'] href=\"(?P<url>view\.php.+?)\"\s+>.*?>(?P<title>.+)</span></a>'
-            
-            # 띄어쓰기나 추가 클래스가 있어도 매칭되도록 정규식 수정
-            regex = r'class="baseList-title[^"]*"\s+href="(?P<url>view\.php[^"]+)"[^>]*>(?P<title>.*?)</a>'
-
-            for board in boards:
-                if P.ModelSetting.get(f'use_board_ppomppu_{board}') == 'True':
-
-                    getdata = sess.get(
-                        f'https://www.ppomppu.co.kr/zboard/zboard.php?id={board}&hotlist_flag=999')
-#                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE | re.IGNORECASE | re.DOTALL)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        
-                        # title 내부에 포함된 불필요한 HTML 태그 제거 및 양옆 공백 제거
-                        clean_title = re.sub(r'<[^>]+>', '', new_obj['title']).strip()
-                        # 2. HTML 엔티티(&amp; 등)를 실제 문자로 변환
-                        clean_title = html.unescape(clean_title)
-                        
-                        new_obj['title'] = clean_title
-                        
-                        new_obj['site'] = 'ppomppu'
-                        new_obj['board'] = board
-                        ret['data'].append(new_obj)
-
-        if P.ModelSetting.get('use_site_ruriweb') == 'True':
-            boards = ['1020', '600004']
-            for board in boards:
-                regex = r'<a class=\"deco\" href=\"(?P<url>.+)\"\>(?P<title>.+)</a>'
-                url = f'https://bbs.ruliweb.com/market/board/{board}?view_best=1'
-                if P.ModelSetting.get(f'use_board_ruriweb_{board}') == 'True':
-                    getdata = sess.get(url)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        new_obj['site'] = 'ruriweb'
-                        new_obj['board'] = board
-                        ret['data'].append(new_obj)
-
-        if P.ModelSetting.get('use_site_quasarzone') == 'True':
-            boards = ['qb_saleinfo']
-            scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'android', 'desktop': False})
-            for board in boards:
-                regex = r'<p class=\"tit\">\s+<a href=\"(?P<url>.+)\"\s+class=.+>\s+.+\s+(?:<span class=\"ellipsis-with-reply-cnt\">)?(?P<title>.+?)(?:</span>)'
-                url = f'https://quasarzone.com/bbs/{board}&popularity=Y'
-                if P.ModelSetting.get(f'use_board_quasarzone_{board}') == 'True':
-                    getdata = scraper.get(url)
-                    matches = re.finditer(regex, getdata.text, re.MULTILINE)
-                    for matchNum, match in enumerate(matches, start=1):
-                        new_obj = match.groupdict()
-                        new_obj['site'] = 'quasarzone'
-                        new_obj['board'] = board
-                        new_obj['url'] = 'https://quasarzone.com' + new_obj['url'] if new_obj['url'].startswith('/') else new_obj['url']
-                        ret['data'].append(new_obj)
-
+        ret = {'status': 'success', 'data': []}
+        started = time.monotonic()
+        P.logger.info('[HOTDEAL][START] module_file=%s', __file__)
+        specs = [
+            ('ppomppu', ['ppomppu', 'ppomppu4', 'ppomppu8', 'money'],
+             r'class="baseList-title[^"]*"\s+href="(?P<url>view\.php[^"]+)"[^>]*>(?P<title>.*?)</a>',
+             re.MULTILINE | re.IGNORECASE | re.DOTALL),
+            ('ruriweb', ['1020', '600004'],
+             r'<a class=\"deco\" href=\"(?P<url>.+)\"\>(?P<title>.+)</a>', re.MULTILINE),
+            ('quasarzone', ['qb_saleinfo'],
+             r'<p class=\"tit\">\s+<a href=\"(?P<url>.+)\"\s+class=.+>\s+.+\s+(?:<span class=\"ellipsis-with-reply-cnt\">)?(?P<title>.+?)(?:</span>)',
+             re.MULTILINE),
+        ]
+        with requests.Session() as session:
+            scraper = None
+            for site, boards, regex, flags in specs:
+                if not self._setting_enabled('use_site_' + site):
+                    continue
+                for board in boards:
+                    if not self._setting_enabled('use_board_%s_%s' % (site, board)):
+                        continue
+                    try:
+                        client = session
+                        if site == 'ppomppu':
+                            url = 'https://www.ppomppu.co.kr/zboard/zboard.php?id=%s&hotlist_flag=999' % board
+                        elif site == 'ruriweb':
+                            url = 'https://bbs.ruliweb.com/market/board/%s?view_best=1' % board
+                        else:
+                            url = 'https://quasarzone.com/bbs/%s?popularity=Y' % board
+                            if scraper is None:
+                                scraper = cloudscraper.create_scraper(browser={
+                                    'browser': 'chrome', 'platform': 'android', 'desktop': False,
+                                })
+                            client = scraper
+                        response = self._request_page(client, url, site, board, 'list')
+                        matches = list(re.finditer(regex, response.text, flags))
+                        accepted = skipped = 0
+                        for match in matches:
+                            obj = match.groupdict()
+                            obj['url'] = html.unescape(obj['url'])
+                            if site == 'ppomppu':
+                                query = parse_qs(urlparse(obj['url']).query)
+                                if query.get('id', [''])[0] != board or not query.get('no', [''])[0].isdigit():
+                                    skipped += 1
+                                    continue
+                            obj['title'] = html.unescape(re.sub(r'<[^>]+>', '', obj['title'])).strip()
+                            if not obj['title']:
+                                skipped += 1
+                                continue
+                            if site == 'quasarzone':
+                                obj['url'] = urljoin('https://quasarzone.com', obj['url'])
+                            obj['site'] = site
+                            obj['board'] = board
+                            ret['data'].append(obj)
+                            accepted += 1
+                        P.logger.info('[HOTDEAL][PARSE] site=%s board=%s matched=%s accepted=%s skipped=%s',
+                                      site, board, len(matches), accepted, skipped)
+                        if not accepted:
+                            page_title = re.search(r'<title[^>]*>(.*?)</title>', response.text, re.I | re.S)
+                            P.logger.warning('[HOTDEAL][EMPTY] site=%s board=%s page_title=%r '
+                                             'has_title_class=%s has_view_link=%s',
+                                             site, board,
+                                             html.unescape(page_title.group(1)).strip()[:200] if page_title else '',
+                                             'baseList-title' in response.text, 'view.php' in response.text)
+                    except Exception:
+                        ret['status'] = 'error'
+                        P.logger.error('[HOTDEAL][BOARD_ERROR] site=%s board=%s\n%s',
+                                       site, board, traceback.format_exc())
+            if scraper is not None:
+                scraper.close()
+        saved = duplicates = failed = 0
         for row in ret['data']:
-            ModelItem.update({
-                'site_name': row['site'],
-                'board_name': row['board'],
-#                'title': row['title'].replace('</span>',''),
-##                'title': row['title'].replace('</span>','').replace('</em>',''),
-                'title': re.sub(r'<.*?>','',row['title']),
-                'url':  row['url']
-            })
-        self.process_discord_data()
+            try:
+                result = ModelItem.update({
+                    'site_name': row['site'], 'board_name': row['board'],
+                    'title': row['title'], 'url': row['url'],
+                })
+                reason = result.get('reason') if isinstance(result, dict) else None
+                if isinstance(result, dict) and result.get('ret') == 'success':
+                    saved += 1
+                elif reason == 'duplicate':
+                    duplicates += 1
+                else:
+                    failed += 1
+                    ret['status'] = 'error'
+                    P.logger.error('[HOTDEAL][SAVE_RESULT] site=%s board=%s result=%r',
+                                   row['site'], row['board'], result)
+            except Exception:
+                failed += 1
+                ret['status'] = 'error'
+                P.logger.error('[HOTDEAL][SAVE_ERROR] site=%s board=%s\n%s',
+                               row['site'], row['board'], traceback.format_exc())
+        P.logger.info('[HOTDEAL][SAVE_SUMMARY] parsed=%s saved=%s duplicate=%s failed=%s',
+                      len(ret['data']), saved, duplicates, failed)
+        try:
+            self.process_discord_data()
+        except Exception:
+            ret['status'] = 'error'
+            P.logger.error('[HOTDEAL][NOTIFY_ERROR]\n%s', traceback.format_exc())
+        P.logger.info('[HOTDEAL][END] status=%s seconds=%.2f', ret['status'], time.monotonic() - started)
         return ret
 
     def process_discord_data(self):
         try:
-            self.scrap_detail()
+            detail_result = self.scrap_detail()
+            P.logger.info('[HOTDEAL][DETAIL_SUMMARY] result=%r', detail_result)
         except Exception as e:
             P.logger.error('Exception:%s', e)
             P.logger.error(traceback.format_exc())
         items = ModelItem.get_alarm_target_list()
+        P.logger.info('[HOTDEAL][NOTIFY] pending=%s', len(items) if items is not None else None)
+        P.logger.info('[HOTDEAL][NOTIFY_SETTINGS] always=%s keyword=%s distinct=%s web_push=%s',
+                      P.ModelSetting.get_bool('use_hotdeal_alarm'),
+                      P.ModelSetting.get_bool('use_hotdeal_keyword_alarm'),
+                      P.ModelSetting.get_bool('use_hotdeal_keyword_alarm_dist'),
+                      P.ModelSetting.get_bool('use_hotdeal_web_push'))
         if items is None or len(items) == 0:
             return
         msg_template = P.ModelSetting.get('alarm_message_template')
         if msg_template is None or len(msg_template) == 0:
+            P.logger.warning('[HOTDEAL][NOTIFY_SKIP] empty message template')
             return
         for item in items:
             if P.ModelSetting.get_bool('use_hotdeal_alarm') or P.ModelSetting.get_bool('use_hotdeal_keyword_alarm'):
@@ -252,6 +327,8 @@ class ModuleBasic(PluginModuleBase):
                             is_dist_send = True
                         
 
+                P.logger.info('[HOTDEAL][NOTIFY_DECISION] id=%s site=%s send=%s distinct=%s',
+                              item.id, item.site_name, is_send, is_dist_send)
                 if is_send is True:
                     msg = msg_template
                     msg = msg.replace('{title}', title).replace('{site}', site).replace(
@@ -268,6 +345,7 @@ class ModuleBasic(PluginModuleBase):
                         msg, message_id=f"bot_{P.package_name}_keyword")
                     if is_web_push:
                         self.web_push({'message' : title, 'url':mall_url if len(mall_url) > 0 else url})
+            P.logger.info('[HOTDEAL][ALARM_MARK] id=%s alarm_status=True (existing behavior)', item.id)
             item.alarm_status = True
             ModelItem.save(item)
     def process_api(self, sub, req):
