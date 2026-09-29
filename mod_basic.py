@@ -107,7 +107,18 @@ class ModuleBasic(PluginModuleBase):
 
     def _request_page(self, client, url, site, board, phase):
         started = time.monotonic()
-        response = client.get(url, timeout=(10, 30))
+        request_options = {'timeout': (10, 30)}
+        if site == 'ppomppu':
+            request_options['headers'] = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                              'AppleWebKit/537.36 (KHTML, like Gecko) '
+                              'Chrome/140.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.7',
+                'Referer': 'https://www.ppomppu.co.kr/',
+            }
+            P.logger.info('[HOTDEAL][REQUEST_PROFILE] site=ppomppu profile=browser-headers-v3')
+        response = client.get(url, **request_options)
         # The supplied ppomppu page declares EUC-KR. Prefer a declared charset.
         charset = re.search(br'charset\s*=\s*["\x27]?([A-Za-z0-9_-]+)', response.content[:8192], re.I)
         if charset:
